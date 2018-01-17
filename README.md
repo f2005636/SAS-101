@@ -1,2 +1,2 @@
 # SAS-101
-Model Development using SAS tools
+Model development using SAS tools
