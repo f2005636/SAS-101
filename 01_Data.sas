@@ -1,47 +1,30 @@
-%macro markov_chain(cnt);
-%let clean = 25250;
-%let dpd30 = 575;
-%let dpd60 = 220;
-%let dpd90 = 0;
+proc contents data=rg.cereals; run;
+ 
+/*1 missing value imputation*/
 
-data fin_pop; 
-iteration = 0;
-clean = &clean.;
-dpd30 = &dpd30.;
-dpd60 = &dpd60.;
-dpd90 = &dpd90.;
+/*Potass = 9.60509 + Rating * 2.09633*/
+proc reg data=rg.cereals; model Potass = Rating; run;
+
+/*Sugars = 17.11591 + Rating * -0.23708*/
+proc reg data=rg.cereals; model Sugars = Rating; run;
+
+/*Carbo = 13.75705 + Rating * 0.02457;*/
+proc reg data=rg.cereals; model Carbo = Rating; run;
+
+data rg.c1; 
+set rg.cereals; 
+if Potass = . then Potass = 9.60509 + Rating * 2.09633;
+if Sugars = . then Sugars = 17.11591 + Rating * -0.23708;
+if Carbo = . then Carbo = 13.75705 + Rating * 0.02457;
 run;
 
-%do i=1 %to &cnt.;
-	data calc_mat;	
-	clean_to_clean = 0.9901 * &clean.;
-	clean_to_dpd30 = 0.0099 * &clean.;
-	dpd30_to_clean = 0.3478 * &dpd30.;
-	dpd30_to_dpd30 = 0.4348 * &dpd30.;
-	dpd30_to_dpd60 = 0.2174 * &dpd30.;
-	dpd60_to_clean = 0.0909 * &dpd60.;
-	dpd60_to_dpd30 = 0.1136 * &dpd60.;
-	dpd60_to_dpd60 = 0.3409 * &dpd60.;
-	dpd60_to_dpd90 = 0.4545 * &dpd60.;
-	
-	call symput('clean',sum(clean_to_clean,dpd30_to_clean,dpd60_to_clean));
-	call symput('dpd30',sum(clean_to_dpd30,dpd30_to_dpd30,dpd60_to_dpd30));
-	call symput('dpd60',sum(dpd30_to_dpd60,dpd60_to_dpd60));
-	call symput('dpd90',sum(&dpd90.,dpd60_to_dpd90));	
-	run;
-	
-	data temp;
-	iteration = &i.;
-	clean = &clean.;
-	dpd30 = &dpd30.;
-	dpd60 = &dpd60.;
-	dpd90 = &dpd90.;
-	run;
-	
-	data fin_pop;
-	set fin_pop temp;
-	run;	
-%end;
-%mend;
+/*2 drop variables*/
 
-%markov_chain(12)
+/*Manuf same as Nabisco, Quaker, Kelloggs, GeneralMills, Ralston, AHFP */
+data rg.c1; set rg.c1 (drop=Nabisco Quaker Kelloggs GeneralMills Ralston AHFP); run;
+
+/*Type same as Cold*/
+data rg.c1; set rg.c1 (drop=Cold); run;
+
+/*3 final dataset*/
+proc contents data=rg.c1; run;
